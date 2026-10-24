@@ -1,6 +1,7 @@
 using Unity.VisualScripting;
 using UnityEngine;
 using System.Linq;
+using System;
 
 public class DiceMixer : MonoBehaviour
 {
@@ -8,9 +9,23 @@ public class DiceMixer : MonoBehaviour
     [SerializeField] int DiceCount;
     [SerializeField] float minForce;
     [SerializeField] float maxForce;
+    [SerializeField] int drawScore;
+    [SerializeField] int winScore;
+    [SerializeField] int loseScore;
+
+    public int WinScore => winScore;
+    public int DrawScore => drawScore;
+    public int LoseScore => loseScore;
+    public int Dices => DiceCount;
+    
     private GameObject[] dices;
     private Dice[] diceComponents;
     private Rigidbody[] rbComponents;
+
+    public event Action<int> OnScoreCalculated;
+    public event Action<int> OnDiceCounted;
+
+    public void Roll() => DiceMix();
 
     private InputSystem_Actions input;
     private void OnEnable()  => input.Enable();
@@ -30,13 +45,14 @@ public class DiceMixer : MonoBehaviour
             diceComponents[i] = dices[i].GetComponent<Dice>();
             rbComponents[i] = dices[i].GetComponent<Rigidbody>();
         }
+        OnDiceCounted?.Invoke(DiceCount);
     }
 
     private int score;
     
     private void Start()
     {
-        DiceMix();
+        
         
     }
 
@@ -57,12 +73,15 @@ public class DiceMixer : MonoBehaviour
 
     private void DiceMix()
     {
+        winScore = UnityEngine.Random.Range(1, DiceCount*6);
+        loseScore = UnityEngine.Random.Range(1, winScore - 1);
+        drawScore = UnityEngine.Random.Range(1, loseScore);
         for(int i = 0; i < dices.Length; i++)
         {
-            var force = Random.Range(minForce, maxForce);
-            var dir = Random.onUnitSphere;
+            var force = UnityEngine.Random.Range(minForce, maxForce);
+            var dir = UnityEngine.Random.onUnitSphere;
             rbComponents[i].AddForce(force * dir, ForceMode.Impulse);
-            rbComponents[i].AddTorque(Random.onUnitSphere * force, ForceMode.Impulse);
+            rbComponents[i].AddTorque(UnityEngine.Random.onUnitSphere * force, ForceMode.Impulse);
             diceComponents[i].IsMoving();
         }
         score = 0;
@@ -76,5 +95,6 @@ public class DiceMixer : MonoBehaviour
             score += dice.Value;
         }
         Debug.Log("Счёт: " + score);
+        OnScoreCalculated?.Invoke(score);
     }
 }
